@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Upload an SVG icon to generate all the image assets (app icon, adaptive icon, splash screen, favicon) needed for your Expo / React Native project. Free, fast, runs entirely in your browser."
+    />
+    <meta
+      name="keywords"
+      content="Expo, React Native, icon generator, app icon, adaptive icon, splash screen, favicon, SVG to PNG"
+    />
+    <meta name="author" content="Expo Icon Creator" />
+    <meta name="theme-color" content="#0071e3" />
+    <meta property="og:title" content="Expo Icon Creator" />
+    <meta property="og:description" content="Generate all image assets for your Expo project from a single SVG icon." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Expo Icon Creator" />
+    <meta
+      name="twitter:description"
+      content="Generate all image assets for your Expo project from a single SVG icon."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Expo Icon Creator - Generate Expo App Icons from SVG</title>
+  </head>
+  <body>
+    <noscript>
+      <div
+        style="
+          max-width: 600px;
+          margin: 4rem auto;
+          padding: 2rem;
+          text-align: center;
+          font-family: -apple-system, sans-serif;
+          color: #1d1d1f;
+        "
+      >
+        <h1>Expo Icon Creator</h1>
+        <p style="margin-top: 1rem; color: #6e6e73">
+          This application requires JavaScript to run. Please enable JavaScript in your browser settings and reload the
+          page.
+        </p>
+      </div>
+    </noscript>
+    <div id="app">
+      <header class="app-header">
+        <h1>Expo Icon Creator</h1>
+        <p class="subtitle">Upload an SVG icon to generate all the image assets needed for your Expo project</p>
+      </header>
+
+      <main class="app-main">
+        <!-- Left Panel: Controls -->
+        <section class="controls-panel">
+          <div class="control-group">
+            <label class="control-label">SVG Icon</label>
+            <div class="upload-zone" id="upload-zone">
+              <div class="upload-placeholder" id="upload-placeholder">
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>Drag & drop SVG here or click to browse</span>
+                <span class="upload-hint">.svg files only</span>
+              </div>
+              <div class="upload-preview" id="upload-preview" style="display: none">
+                <img id="svg-preview-img" alt="Uploaded SVG" />
+                <button class="btn-remove" id="btn-remove" title="Remove">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+              <input type="file" id="file-input" accept=".svg,image/svg+xml" hidden />
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Target Platforms</label>
+            <div class="platform-selector">
+              <label class="platform-chip">
+                <input type="checkbox" id="platform-ios" checked />
+                <span class="platform-chip-label">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 5-2.55 5-5.5 0-4.22-3.58-7.5-8-7.5s-8 3.28-8 7.5c0 2.95 2 5.5 5 5.5 1.25 0 2.5-1.06 4-1.06z"
+                    />
+                    <path d="M10 2c1 .5 2 2 2 5" />
+                    <path d="M14 2c-1 .5-2 2-2 5" />
+                  </svg>
+                  iOS
+                </span>
+              </label>
+              <label class="platform-chip">
+                <input type="checkbox" id="platform-android" checked />
+                <span class="platform-chip-label">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="5" y="11" width="14" height="10" rx="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    <path d="M9 3l-1.5-1.5" />
+                    <path d="M15 3l1.5-1.5" />
+                  </svg>
+                  Android
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label" for="bg-color">Background Color</label>
+            <div class="color-input-row">
+              <input type="color" id="bg-color" value="#ffffff" />
+              <input type="text" id="bg-color-text" value="#ffffff" maxlength="7" spellcheck="false" />
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label dark-mode-label">
+              <span>Dark Mode Splash Screen</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="dark-mode-toggle" />
+                <span class="toggle-slider"></span>
+              </label>
+            </label>
+            <div class="dark-mode-options" id="dark-mode-options" style="display: none">
+              <div class="color-input-row">
+                <input type="color" id="dark-bg-color" value="#000000" />
+                <input type="text" id="dark-bg-color-text" value="#000000" maxlength="7" spellcheck="false" />
+                <span class="color-label">Dark BG</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <label class="control-label" for="icon-padding">
+                Icon Padding: <span id="padding-value">20%</span>
+              </label>
+              <button
+                class="btn-auto-padding"
+                id="btn-auto-padding"
+                title="Auto-detect optimal padding from SVG content edges"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+                  />
+                </svg>
+                Auto
+              </button>
+            </div>
+            <input type="range" id="icon-padding" min="5" max="45" value="20" />
+            <div class="range-labels">
+              <span>5%</span>
+              <span>45%</span>
+            </div>
+          </div>
+
+          <button class="btn-generate" id="btn-generate" disabled>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Generate & Download ZIP
+          </button>
+        </section>
+
+        <!-- Right Panel: Preview -->
+        <section class="preview-panel" id="preview-panel">
+          <div class="preview-empty" id="preview-empty">
+            <svg
+              width="64"
+              height="64"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              opacity="0.3"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+            <p>Upload an SVG to see live previews</p>
+          </div>
+
+          <div class="preview-grid" id="preview-grid" style="display: none">
+            <div class="preview-card">
+              <h3>App Icon</h3>
+              <p class="preview-desc">icon.png (1024x1024)</p>
+              <div class="preview-canvas-wrap">
+                <canvas id="preview-ios" width="200" height="200"></canvas>
+                <div class="ios-mask"></div>
+              </div>
+            </div>
+
+            <div class="preview-card">
+              <h3>Android Adaptive Icon</h3>
+              <p class="preview-desc">foreground + background (512x512)</p>
+              <div class="preview-canvas-wrap">
+                <canvas id="preview-android" width="200" height="200"></canvas>
+                <div class="android-mask"></div>
+              </div>
+            </div>
+
+            <div class="preview-card">
+              <h3>Splash Screen</h3>
+              <p class="preview-desc">splash-icon.png (1024x1024)</p>
+              <div class="preview-canvas-wrap preview-splash-wrap">
+                <canvas id="preview-splash" width="240" height="160"></canvas>
+              </div>
+            </div>
+
+            <div class="preview-card" id="preview-splash-dark-card" style="display: none">
+              <h3>Splash Screen (Dark)</h3>
+              <p class="preview-desc">splash-icon-dark.png (1024x1024)</p>
+              <div class="preview-canvas-wrap preview-splash-wrap">
+                <canvas id="preview-splash-dark" width="240" height="160"></canvas>
+              </div>
+            </div>
+
+            <div class="preview-card">
+              <h3>Favicon</h3>
+              <p class="preview-desc">favicon.png (48x48)</p>
+              <div class="preview-canvas-wrap preview-favicon-wrap">
+                <canvas id="preview-favicon" width="48" height="48"></canvas>
+              </div>
+            </div>
+
+            <div class="preview-card">
+              <h3>Android Monochrome</h3>
+              <p class="preview-desc">monochrome.png (512x512)</p>
+              <div class="preview-canvas-wrap">
+                <canvas id="preview-mono" width="200" height="200"></canvas>
+                <div class="android-mask"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Config Snippet Section -->
+      <section class="config-section" id="config-section" style="display: none">
+        <h2>app.json Configuration</h2>
+        <p class="config-desc">Copy and merge this into your Expo project's app.json:</p>
+        <div class="config-wrapper">
+          <pre class="config-code"><code id="config-code"></code></pre>
+          <button class="btn-copy" id="btn-copy">Copy</button>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
