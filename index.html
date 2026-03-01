@@ -14,7 +14,10 @@
     <meta name="author" content="Expo Icon Creator" />
     <meta name="theme-color" content="#0071e3" />
     <meta property="og:title" content="Expo Icon Creator" />
-    <meta property="og:description" content="Generate all image assets for your Expo project from a single SVG icon." />
+    <meta
+      property="og:description"
+      content="Generate all image assets for your Expo project from a single SVG icon."
+    />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/og-image.png" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -23,7 +26,13 @@
       name="twitter:description"
       content="Generate all image assets for your Expo project from a single SVG icon."
     />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="twitter:image" content="/og-image.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="mask-icon" href="/icon.svg" color="#0071e3" />
     <title>Expo Icon Creator - Generate Expo App Icons from SVG</title>
   </head>
   <body>
@@ -40,15 +49,17 @@
       >
         <h1>Expo Icon Creator</h1>
         <p style="margin-top: 1rem; color: #6e6e73">
-          This application requires JavaScript to run. Please enable JavaScript in your browser settings and reload the
-          page.
+          This application requires JavaScript to run. Please enable JavaScript in your browser
+          settings and reload the page.
         </p>
       </div>
     </noscript>
     <div id="app">
       <header class="app-header">
         <h1>Expo Icon Creator</h1>
-        <p class="subtitle">Upload an SVG icon to generate all the image assets needed for your Expo project</p>
+        <p class="subtitle">
+          Upload an SVG icon to generate all the image assets needed for your Expo project
+        </p>
       </header>
 
       <main class="app-main">
@@ -150,7 +161,13 @@
             <label class="control-label" for="bg-color">Background Color</label>
             <div class="color-input-row">
               <input type="color" id="bg-color" value="#ffffff" />
-              <input type="text" id="bg-color-text" value="#ffffff" maxlength="7" spellcheck="false" />
+              <input
+                type="text"
+                id="bg-color-text"
+                value="#ffffff"
+                maxlength="7"
+                spellcheck="false"
+              />
             </div>
           </div>
 
@@ -165,7 +182,13 @@
             <div class="dark-mode-options" id="dark-mode-options" style="display: none">
               <div class="color-input-row">
                 <input type="color" id="dark-bg-color" value="#000000" />
-                <input type="text" id="dark-bg-color-text" value="#000000" maxlength="7" spellcheck="false" />
+                <input
+                  type="text"
+                  id="dark-bg-color-text"
+                  value="#000000"
+                  maxlength="7"
+                  spellcheck="false"
+                />
                 <span class="color-label">Dark BG</span>
               </div>
             </div>
