@@ -1,5 +1,7 @@
 # Expo Icon Creator
 
+![Vibe Coding](https://img.shields.io/badge/Vibe-Coding-FF69B4?style=flat-square&logo=visual-studio-code)
+
 A simple, fast, and secure web-based tool to generate all the necessary icon and splash screen assets for your Expo projects from a single SVG file.
 
 **Live Demo:** [https://expo-icon-creator.tingyuan.in](https://expo-icon-creator.tingyuan.in)
@@ -23,37 +25,6 @@ A simple, fast, and secure web-based tool to generate all the necessary icon and
    - Select your target platforms (iOS/Android).
 3. **Download**: Click "Generate & Download ZIP" to get your assets.
 4. **Configure**: Copy the generated configuration snippet into your Expo project's `app.json`.
-
-## Local Development
-
-This project is built with [Vite](https://vitejs.dev/) and is designed to be deployed on [Cloudflare Pages](https://pages.cloudflare.com/).
-
-### Prerequisites
-
-- Node.js (v18 or later)
-- npm
-
-### Setup
-
-```bash
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-```
-
-### Deployment
-
-The project uses `wrangler` for deployment to Cloudflare:
-
-```bash
-# Deploy to Cloudflare
-npm run deploy
-```
 
 ## License
 
