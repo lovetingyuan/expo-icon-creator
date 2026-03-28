@@ -71,6 +71,106 @@ export function loadSvgAsImage(svgText) {
   });
 }
 
+function getIconDrawRect(width, height, padding, opts = {}) {
+  let iconPadding = padding;
+  if (opts.circularSafeZone) {
+    const safeRatio = 0.666;
+    const inscribedRatio = safeRatio / Math.SQRT2;
+    iconPadding = (1 - inscribedRatio * (1 - padding)) / 2;
+  }
+
+  const scale = opts.scale || 1;
+  const baseSize = Math.min(width, height);
+  const iconSize = baseSize * (1 - 2 * iconPadding) * scale;
+
+  return {
+    iconSize,
+    x: (width - iconSize) / 2,
+    y: (height - iconSize) / 2,
+  };
+}
+
+function setSplashTextFont(ctx, size) {
+  ctx.font = `700 ${size}px system-ui, sans-serif`;
+}
+
+function fitSplashText(ctx, text, width, height, textSizePercent = 9) {
+  const maxWidth = width * 0.72;
+  const initialSize = height * (textSizePercent / 100);
+  const minSize = Math.min(initialSize, height * 0.05);
+  let fontSize = initialSize;
+
+  setSplashTextFont(ctx, fontSize);
+  let metrics = ctx.measureText(text);
+
+  if (metrics.width > maxWidth && metrics.width > 0) {
+    fontSize = Math.max(minSize, (fontSize * maxWidth) / metrics.width);
+    setSplashTextFont(ctx, fontSize);
+    metrics = ctx.measureText(text);
+  }
+
+  while (metrics.width > maxWidth && fontSize > minSize) {
+    fontSize = Math.max(minSize, fontSize - 1);
+    setSplashTextFont(ctx, fontSize);
+    metrics = ctx.measureText(text);
+  }
+
+  const textHeight =
+    (metrics.actualBoundingBoxAscent || fontSize * 0.8) +
+    (metrics.actualBoundingBoxDescent || fontSize * 0.2);
+
+  return {
+    fontSize,
+    textHeight,
+  };
+}
+
+function drawSplashComposition(opts) {
+  const {
+    ctx,
+    width,
+    height,
+    image,
+    bgColor,
+    padding,
+    text,
+    textColor,
+    textSizePercent = 9,
+    scale = 1,
+  } = opts;
+  const splashText = (text || '').trim();
+
+  ctx.clearRect(0, 0, width, height);
+
+  if (bgColor) {
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  if (!image) return;
+
+  const baseRect = getIconDrawRect(width, height, padding, { scale });
+
+  if (!splashText) {
+    ctx.drawImage(image, baseRect.x, baseRect.y, baseRect.iconSize, baseRect.iconSize);
+    return;
+  }
+
+  const gap = height * 0.04;
+  const logoSize = baseRect.iconSize * 0.82;
+  const { textHeight } = fitSplashText(ctx, splashText, width, height, textSizePercent);
+  const blockHeight = logoSize + gap + textHeight;
+  const logoX = (width - logoSize) / 2;
+  const logoY = (height - blockHeight) / 2;
+  const textY = logoY + logoSize + gap;
+
+  ctx.drawImage(image, logoX, logoY, logoSize, logoSize);
+  ctx.fillStyle = textColor || '#000000';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(splashText, width / 2, textY);
+}
+
 /**
  * Draw an icon centered on a canvas with the given options.
  * @param {Object} opts
@@ -96,23 +196,7 @@ function drawIcon(opts) {
     ctx.fillRect(0, 0, w, h);
   }
 
-  // Calculate icon area
-  let iconPadding = padding;
-  if (circularSafeZone) {
-    // Android adaptive icon: the safe zone is a centered circle with diameter = 66% of the full size.
-    // The icon should fit within this safe zone. We apply padding within the safe zone area.
-    // Safe zone diameter = 66.6% of canvas → radius = 33.3%
-    // Icon fits in a square inscribed in the safe zone circle.
-    // inscribed square side = diameter / sqrt(2) ≈ 0.471 of canvas
-    // Then apply user padding within that.
-    const safeRatio = 0.666;
-    const inscribedRatio = safeRatio / Math.SQRT2;
-    iconPadding = (1 - inscribedRatio * (1 - padding)) / 2;
-  }
-
-  const iconSize = Math.min(w, h) * (1 - 2 * iconPadding);
-  const x = (w - iconSize) / 2;
-  const y = (h - iconSize) / 2;
+  const { iconSize, x, y } = getIconDrawRect(w, h, padding, { circularSafeZone });
 
   if (monochrome) {
     // Draw to a temporary canvas, then convert to grayscale
@@ -145,18 +229,32 @@ function drawIcon(opts) {
  * Generate all Expo icon assets as { name, blob } array.
  * @param {HTMLImageElement} svgImage - SVG loaded as Image
  * @param {string} bgColor - hex color string (e.g. "#ffffff")
- * @param {number} paddingPercent - padding percentage (0-45)
+ * @param {{ iconPaddingPercent: number, splashPaddingPercent: number }} paddingOptions
+ * @param {number} paddingOptions.iconPaddingPercent - icon padding percentage (0-45)
+ * @param {number} paddingOptions.splashPaddingPercent - splash padding percentage (0-24)
  * @param {Object} [darkMode] - dark mode options
  * @param {boolean} darkMode.enabled - whether dark mode is enabled
  * @param {string} darkMode.bgColor - dark mode background color
  * @param {Object} [platforms] - selected platforms
  * @param {boolean} platforms.ios - whether iOS is selected
  * @param {boolean} platforms.android - whether Android is selected
+ * @param {Object} [splashText] - splash text options
+ * @param {string} splashText.text - text rendered below the splash logo
+ * @param {number} splashText.sizePercent - text size as a percent of splash canvas height
+ * @param {string} splashText.color - text color for the default splash
+ * @param {string} splashText.darkColor - text color for the dark splash
  * @returns {Promise<Array<{name: string, blob: Blob}>>}
  */
-export async function generateAllAssets(svgImage, bgColor, paddingPercent, darkMode, platforms) {
-  const padding = paddingPercent / 100;
-  const splashPadding = Math.min(padding, 0.12);
+export async function generateAllAssets(
+  svgImage,
+  bgColor,
+  paddingOptions,
+  darkMode,
+  platforms,
+  splashText
+) {
+  const iconPadding = paddingOptions.iconPaddingPercent / 100;
+  const splashPadding = paddingOptions.splashPaddingPercent / 100;
   const includeIos = !platforms || platforms.ios;
   const includeAndroid = !platforms || platforms.android;
 
@@ -168,7 +266,7 @@ export async function generateAllAssets(svgImage, bgColor, paddingPercent, darkM
     name: 'icon.png',
     size: 1024,
     bgColor: bgColor,
-    padding: padding,
+    padding: iconPadding,
     monochrome: false,
     circularSafeZone: false,
   });
@@ -180,7 +278,7 @@ export async function generateAllAssets(svgImage, bgColor, paddingPercent, darkM
         name: 'android-icon-foreground.png',
         size: 512,
         bgColor: null, // transparent
-        padding: padding,
+        padding: iconPadding,
         monochrome: false,
         circularSafeZone: true,
       },
@@ -197,7 +295,7 @@ export async function generateAllAssets(svgImage, bgColor, paddingPercent, darkM
         name: 'android-icon-monochrome.png',
         size: 512,
         bgColor: null, // transparent
-        padding: padding,
+        padding: iconPadding,
         monochrome: true,
         circularSafeZone: true,
       },
@@ -210,7 +308,7 @@ export async function generateAllAssets(svgImage, bgColor, paddingPercent, darkM
       name: 'favicon.png',
       size: 48,
       bgColor: bgColor,
-      padding: padding * 0.6, // less padding on tiny favicon
+      padding: iconPadding * 0.6, // less padding on tiny favicon
       monochrome: false,
       circularSafeZone: false,
     });
@@ -225,6 +323,11 @@ export async function generateAllAssets(svgImage, bgColor, paddingPercent, darkM
       padding: splashPadding,
       monochrome: false,
       circularSafeZone: false,
+      splash: {
+        text: splashText?.text || '',
+        sizePercent: splashText?.sizePercent || 9,
+        color: splashText?.color || '#000000',
+      },
     });
   }
 
@@ -237,6 +340,11 @@ export async function generateAllAssets(svgImage, bgColor, paddingPercent, darkM
       padding: splashPadding,
       monochrome: false,
       circularSafeZone: false,
+      splash: {
+        text: splashText?.text || '',
+        sizePercent: splashText?.sizePercent || 9,
+        color: splashText?.darkColor || '#ffffff',
+      },
     });
   }
 
@@ -250,6 +358,19 @@ export async function generateAllAssets(svgImage, bgColor, paddingPercent, darkM
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = asset.bgColor;
       ctx.fillRect(0, 0, asset.size, asset.size);
+    } else if (asset.splash) {
+      const ctx = canvas.getContext('2d');
+      drawSplashComposition({
+        ctx,
+        width: asset.size,
+        height: asset.size,
+        image: svgImage,
+        bgColor: asset.bgColor,
+        padding: asset.padding,
+        text: asset.splash.text,
+        textSizePercent: asset.splash.sizePercent,
+        textColor: asset.splash.color,
+      });
     } else {
       drawIcon({
         canvas,
@@ -414,19 +535,10 @@ export function renderPreview(canvas, image, bgColor, padding, opts = {}) {
 
   if (!image) return;
 
-  let iconPadding = padding;
-  if (opts.circularSafeZone) {
-    const safeRatio = 0.666;
-    const inscribedRatio = safeRatio / Math.SQRT2;
-    iconPadding = (1 - inscribedRatio * (1 - padding)) / 2;
-  }
-
-  // For splash preview, the icon is smaller relative to the canvas
-  const scale = opts.splashScale || 1;
-  const baseSize = Math.min(w, h);
-  const iconSize = baseSize * (1 - 2 * iconPadding) * scale;
-  const x = (w - iconSize) / 2;
-  const y = (h - iconSize) / 2;
+  const { iconSize, x, y } = getIconDrawRect(w, h, padding, {
+    circularSafeZone: opts.circularSafeZone,
+    scale: opts.splashScale || 1,
+  });
 
   if (opts.monochrome) {
     const tmpCanvas = document.createElement('canvas');
@@ -449,4 +561,20 @@ export function renderPreview(canvas, image, bgColor, padding, opts = {}) {
   } else {
     ctx.drawImage(image, x, y, iconSize, iconSize);
   }
+}
+
+export function renderSplashPreview(canvas, image, bgColor, padding, opts = {}) {
+  const ctx = canvas.getContext('2d');
+  drawSplashComposition({
+    ctx,
+    width: canvas.width,
+    height: canvas.height,
+    image,
+    bgColor,
+    padding,
+    text: opts.text,
+    textSizePercent: opts.textSizePercent,
+    textColor: opts.textColor,
+    scale: opts.splashScale || 1,
+  });
 }

@@ -59,6 +59,13 @@
         <h1>Expo Icon Creator</h1>
         <p class="subtitle">
           Upload an SVG icon to generate all the image assets needed for your Expo project
+          <a
+            href="https://docs.expo.dev/develop/user-interface/splash-screen-and-app-icon/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            See Expo official docs
+          </a>
         </p>
       </header>
 
@@ -66,7 +73,10 @@
         <!-- Left Panel: Controls -->
         <section class="controls-panel">
           <div class="control-group">
-            <label class="control-label">SVG Icon</label>
+            <div class="control-label-row">
+              <label class="control-label">SVG Icon</label>
+              <span class="control-label-meta" id="svg-dimensions">-</span>
+            </div>
             <div class="upload-zone" id="upload-zone">
               <div class="upload-placeholder" id="upload-placeholder">
                 <svg
@@ -191,13 +201,24 @@
                 />
                 <span class="color-label">Dark BG</span>
               </div>
+              <div class="color-input-row">
+                <input type="color" id="dark-splash-text-color" value="#ffffff" />
+                <input
+                  type="text"
+                  id="dark-splash-text-color-text"
+                  value="#ffffff"
+                  maxlength="7"
+                  spellcheck="false"
+                />
+                <span class="color-label">Dark Text</span>
+              </div>
             </div>
           </div>
 
           <div class="control-group">
             <div class="control-label-row">
               <label class="control-label" for="icon-padding">
-                Icon Padding: <span id="padding-value">20%</span>
+                Icon Padding: <span id="icon-padding-value">20%</span>
               </label>
               <button
                 class="btn-auto-padding"
@@ -225,6 +246,59 @@
             <div class="range-labels">
               <span>5%</span>
               <span>45%</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <label class="control-label" for="splash-padding">
+                Splash Padding: <span id="splash-padding-value">12%</span>
+              </label>
+            </div>
+            <input type="range" id="splash-padding" min="0" max="24" value="12" />
+            <div class="range-labels">
+              <span>0%</span>
+              <span>24%</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label" for="splash-text">Splash Text</label>
+            <input
+              class="text-input"
+              type="text"
+              id="splash-text"
+              maxlength="10"
+              placeholder="App Name"
+              spellcheck="false"
+            />
+            <p class="control-help">Optional. Shown below the logo on splash screens, up to 10 characters.</p>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <label class="control-label" for="splash-text-size">
+                Splash Text Size: <span id="splash-text-size-value">9%</span>
+              </label>
+            </div>
+            <input type="range" id="splash-text-size" min="5" max="16" value="9" />
+            <div class="range-labels">
+              <span>5%</span>
+              <span>16%</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label" for="splash-text-color">Splash Text Color</label>
+            <div class="color-input-row">
+              <input type="color" id="splash-text-color" value="#000000" />
+              <input
+                type="text"
+                id="splash-text-color-text"
+                value="#000000"
+                maxlength="7"
+                spellcheck="false"
+              />
             </div>
           </div>
 
@@ -269,6 +343,80 @@
           </div>
 
           <div class="preview-grid" id="preview-grid" style="display: none">
+            <div class="preview-card preview-scene-card">
+              <h3>Home Screen Preview</h3>
+              <p class="preview-desc" id="preview-home-scene-desc">Launcher-style preview</p>
+              <div class="device-frame">
+                <div class="device-scene device-scene-home scene-android" id="preview-home-scene">
+                  <div class="scene-statusbar">
+                    <span>9:41</span>
+                    <span>100%</span>
+                  </div>
+                  <div class="scene-search" id="preview-home-search">
+                    <span>Search apps</span>
+                  </div>
+                  <div class="scene-app-grid">
+                    <span class="scene-placeholder-icon"></span>
+                    <span class="scene-placeholder-icon"></span>
+                    <span class="scene-placeholder-icon"></span>
+                    <div class="scene-generated-app">
+                      <div class="scene-icon-variants" id="preview-home-variants">
+                        <div class="scene-icon-variant scene-icon-variant-ios" id="preview-home-variant-ios">
+                          <div class="scene-icon-shell scene-icon-shell-ios">
+                            <canvas id="preview-home-icon-ios" width="108" height="108"></canvas>
+                          </div>
+                        </div>
+                        <div class="scene-icon-variant scene-icon-variant-android" id="preview-home-variant-rounded">
+                          <div class="scene-icon-shell scene-icon-shell-android">
+                            <canvas id="preview-home-icon-rounded" width="108" height="108"></canvas>
+                          </div>
+                          <span class="scene-shape-label">Rounded</span>
+                        </div>
+                        <div class="scene-icon-variant scene-icon-variant-android" id="preview-home-variant-circle">
+                          <div class="scene-icon-shell scene-icon-shell-android">
+                            <canvas id="preview-home-icon-circle" width="108" height="108"></canvas>
+                          </div>
+                          <span class="scene-shape-label">Circle</span>
+                        </div>
+                      </div>
+                      <span class="scene-icon-label">My App</span>
+                    </div>
+                    <span class="scene-placeholder-icon"></span>
+                    <span class="scene-placeholder-icon"></span>
+                    <span class="scene-placeholder-icon"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="preview-card preview-scene-card">
+              <h3>Launch Preview</h3>
+              <p class="preview-desc">Simulated splash screen on device</p>
+              <div class="device-frame">
+                <div class="device-scene device-scene-launch">
+                  <div class="scene-statusbar scene-statusbar-overlay">
+                    <span>9:41</span>
+                    <span>LTE</span>
+                  </div>
+                  <canvas id="preview-launch" width="320" height="640"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="preview-card preview-scene-card" id="preview-launch-dark-card" style="display: none">
+              <h3>Launch Preview (Dark)</h3>
+              <p class="preview-desc">Dark mode splash screen on device</p>
+              <div class="device-frame device-frame-dark">
+                <div class="device-scene device-scene-launch device-scene-launch-dark">
+                  <div class="scene-statusbar scene-statusbar-overlay scene-statusbar-light">
+                    <span>9:41</span>
+                    <span>LTE</span>
+                  </div>
+                  <canvas id="preview-launch-dark" width="320" height="640"></canvas>
+                </div>
+              </div>
+            </div>
+
             <div class="preview-card">
               <h3>App Icon</h3>
               <p class="preview-desc">icon.png (1024x1024)</p>
@@ -326,7 +474,9 @@
       <!-- Config Snippet Section -->
       <section class="config-section" id="config-section" style="display: none">
         <h2>app.json Configuration</h2>
-        <p class="config-desc">Copy and merge this into your Expo project's app.json:</p>
+        <p class="config-desc" id="config-desc">
+          Copy and merge this into your Expo project's app.json:
+        </p>
         <div class="config-wrapper">
           <pre class="config-code"><code id="config-code"></code></pre>
           <button class="btn-copy" id="btn-copy">Copy</button>

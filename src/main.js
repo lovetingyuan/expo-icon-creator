@@ -8,6 +8,7 @@ import {
   loadSvgAsImage,
   generateAllAssets,
   renderPreview,
+  renderSplashPreview,
   analyzeContentBounds,
   calculateOptimalPadding,
 } from './generator.js';
@@ -29,12 +30,14 @@ window.addEventListener('unhandledrejection', (event) => {
 let svgText = null;
 let svgImage = null;
 let svgPreviewUrl = null;
+let svgDimensions = null;
 
 // ---- DOM Elements ----
 const uploadZone = document.getElementById('upload-zone');
 const uploadPlaceholder = document.getElementById('upload-placeholder');
 const uploadPreview = document.getElementById('upload-preview');
 const svgPreviewImg = document.getElementById('svg-preview-img');
+const svgDimensionsValue = document.getElementById('svg-dimensions');
 const fileInput = document.getElementById('file-input');
 const btnRemove = document.getElementById('btn-remove');
 
@@ -47,8 +50,17 @@ const darkModeToggle = document.getElementById('dark-mode-toggle');
 const darkModeOptions = document.getElementById('dark-mode-options');
 const darkBgColorPicker = document.getElementById('dark-bg-color');
 const darkBgColorText = document.getElementById('dark-bg-color-text');
+const darkSplashTextColorPicker = document.getElementById('dark-splash-text-color');
+const darkSplashTextColorText = document.getElementById('dark-splash-text-color-text');
 const iconPaddingSlider = document.getElementById('icon-padding');
-const paddingValueLabel = document.getElementById('padding-value');
+const iconPaddingValueLabel = document.getElementById('icon-padding-value');
+const splashPaddingSlider = document.getElementById('splash-padding');
+const splashPaddingValueLabel = document.getElementById('splash-padding-value');
+const splashTextInput = document.getElementById('splash-text');
+const splashTextSizeSlider = document.getElementById('splash-text-size');
+const splashTextSizeValueLabel = document.getElementById('splash-text-size-value');
+const splashTextColorPicker = document.getElementById('splash-text-color');
+const splashTextColorText = document.getElementById('splash-text-color-text');
 const btnAutoPadding = document.getElementById('btn-auto-padding');
 
 let isAutoPadding = false; // tracks whether the current value was auto-calculated
@@ -60,14 +72,30 @@ const previewGrid = document.getElementById('preview-grid');
 const previewIos = document.getElementById('preview-ios');
 const previewAndroid = document.getElementById('preview-android');
 const previewSplash = document.getElementById('preview-splash');
+const previewHomeScene = document.getElementById('preview-home-scene');
+const previewHomeSceneDesc = document.getElementById('preview-home-scene-desc');
+const previewHomeVariants = document.getElementById('preview-home-variants');
+const previewHomeVariantIos = document.getElementById('preview-home-variant-ios');
+const previewHomeVariantRounded = document.getElementById('preview-home-variant-rounded');
+const previewHomeVariantCircle = document.getElementById('preview-home-variant-circle');
+const previewHomeIconIos = document.getElementById('preview-home-icon-ios');
+const previewHomeIconRounded = document.getElementById('preview-home-icon-rounded');
+const previewHomeIconCircle = document.getElementById('preview-home-icon-circle');
+const previewHomeSearch = document.getElementById('preview-home-search');
+const previewLaunch = document.getElementById('preview-launch');
+const previewLaunchDark = document.getElementById('preview-launch-dark');
+const previewLaunchDarkCard = document.getElementById('preview-launch-dark-card');
 const previewFavicon = document.getElementById('preview-favicon');
 const previewMono = document.getElementById('preview-mono');
 const previewSplashDark = document.getElementById('preview-splash-dark');
 const previewSplashDarkCard = document.getElementById('preview-splash-dark-card');
 
 const configSection = document.getElementById('config-section');
+const configDesc = document.getElementById('config-desc');
 const configCode = document.getElementById('config-code');
 const btnCopy = document.getElementById('btn-copy');
+
+const MAX_SPLASH_TEXT_CHARS = 10;
 
 // ---- Helpers ----
 function getSelectedPlatforms() {
@@ -89,12 +117,68 @@ function getDarkBgColor() {
   return darkBgColorPicker.value;
 }
 
-function getPadding() {
+function getIconPadding() {
   return parseInt(iconPaddingSlider.value, 10);
+}
+
+function getSplashPadding() {
+  return parseInt(splashPaddingSlider.value, 10);
+}
+
+function getSplashText() {
+  return splashTextInput.value.trim();
+}
+
+function getSplashTextSize() {
+  return parseInt(splashTextSizeSlider.value, 10);
+}
+
+function getSplashTextColor() {
+  return splashTextColorPicker.value;
+}
+
+function getDarkSplashTextColor() {
+  return darkSplashTextColorPicker.value;
+}
+
+function getSplashTextOptions() {
+  return {
+    text: getSplashText(),
+    sizePercent: getSplashTextSize(),
+    color: getSplashTextColor(),
+    darkColor: getDarkSplashTextColor(),
+  };
 }
 
 function updateGenerateButton() {
   btnGenerate.disabled = !svgImage;
+}
+
+function clampSplashText(value) {
+  return Array.from(value).slice(0, MAX_SPLASH_TEXT_CHARS).join('');
+}
+
+function getInputValueWithInsertedText(input, insertedText) {
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? start;
+  return input.value.slice(0, start) + insertedText + input.value.slice(end);
+}
+
+function replaceSelectedText(input, nextText) {
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? start;
+  input.setRangeText(nextText, start, end, 'end');
+}
+
+function enforceSplashTextLimit(value, showLimitToast = false) {
+  const clamped = clampSplashText(value);
+  if (clamped !== value && showLimitToast) {
+    showToast(`Splash text supports up to ${MAX_SPLASH_TEXT_CHARS} characters.`, 3000);
+  }
+  if (splashTextInput.value !== clamped) {
+    splashTextInput.value = clamped;
+  }
+  return clamped;
 }
 
 function showUploadedSvg() {
@@ -103,11 +187,13 @@ function showUploadedSvg() {
   uploadPreview.style.display = 'flex';
   svgPreviewUrl = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }));
   svgPreviewImg.src = svgPreviewUrl;
+  svgDimensionsValue.textContent = formatSvgDimensions(svgDimensions);
 }
 
 function clearUploadedSvg() {
   svgText = null;
   svgImage = null;
+  svgDimensions = null;
   if (svgPreviewUrl) {
     URL.revokeObjectURL(svgPreviewUrl);
     svgPreviewUrl = null;
@@ -115,6 +201,7 @@ function clearUploadedSvg() {
   uploadPlaceholder.style.display = 'flex';
   uploadPreview.style.display = 'none';
   svgPreviewImg.src = '';
+  svgDimensionsValue.textContent = '-';
   fileInput.value = '';
   updateGenerateButton();
   hidePreview();
@@ -124,18 +211,22 @@ function clearUploadedSvg() {
 
 function resetPaddingToDefault() {
   iconPaddingSlider.value = 20;
+  splashPaddingSlider.value = 12;
+  splashTextSizeSlider.value = 9;
   isAutoPadding = false;
   updatePaddingLabel();
 }
 
 function updatePaddingLabel() {
   const val = iconPaddingSlider.value + '%';
+  splashPaddingValueLabel.textContent = splashPaddingSlider.value + '%';
+  splashTextSizeValueLabel.textContent = splashTextSizeSlider.value + '%';
   if (isAutoPadding) {
-    paddingValueLabel.textContent = val;
-    paddingValueLabel.classList.add('auto-badge');
+    iconPaddingValueLabel.textContent = val;
+    iconPaddingValueLabel.classList.add('auto-badge');
   } else {
-    paddingValueLabel.textContent = val;
-    paddingValueLabel.classList.remove('auto-badge');
+    iconPaddingValueLabel.textContent = val;
+    iconPaddingValueLabel.classList.remove('auto-badge');
   }
 }
 
@@ -187,6 +278,65 @@ function validateSvgFile(file) {
   return null;
 }
 
+function parseNumericSvgLength(value) {
+  if (!value) return null;
+  const normalized = value.trim();
+  if (!normalized || normalized.endsWith('%')) return null;
+
+  const match = normalized.match(/^([+-]?\d*\.?\d+)(px)?$/i);
+  if (!match) return null;
+
+  const parsed = parseFloat(match[1]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function parseSvgDimensions(svgMarkup) {
+  if (!svgMarkup) return null;
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgMarkup, 'image/svg+xml');
+    const svg = doc.documentElement;
+
+    if (svg.tagName !== 'svg') return null;
+
+    const width = parseNumericSvgLength(svg.getAttribute('width'));
+    const height = parseNumericSvgLength(svg.getAttribute('height'));
+    if (width && height) {
+      return { width, height };
+    }
+
+    const viewBox = (svg.getAttribute('viewBox') || '').trim();
+    if (!viewBox) return null;
+
+    const parts = viewBox
+      .split(/[\s,]+/)
+      .map((part) => parseFloat(part))
+      .filter((part) => Number.isFinite(part));
+
+    if (parts.length !== 4) return null;
+
+    const [, , viewBoxWidth, viewBoxHeight] = parts;
+    if (viewBoxWidth > 0 && viewBoxHeight > 0) {
+      return { width: viewBoxWidth, height: viewBoxHeight };
+    }
+  } catch (err) {
+    console.warn('Failed to parse SVG dimensions:', err);
+  }
+
+  return null;
+}
+
+function formatSvgDimension(value) {
+  if (!Number.isFinite(value)) return '?';
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, '');
+}
+
+function formatSvgDimensions(dimensions) {
+  if (!dimensions) return 'Unknown';
+  return `${formatSvgDimension(dimensions.width)} x ${formatSvgDimension(dimensions.height)}`;
+}
+
 function isUnsafeExternalReference(value) {
   if (!value) return false;
   const raw = value.trim();
@@ -223,24 +373,91 @@ function hasUnsafeCss(value) {
   return false;
 }
 
+const ADAPTIVE_ICON_LAYER_DP = 108;
+const ADAPTIVE_ICON_SAFE_ZONE_DP = 66;
+const PIXEL_SQUIRCLE_EXPONENT = 5.5;
+
+function createSuperellipsePath(x, y, size, exponent = PIXEL_SQUIRCLE_EXPONENT, steps = 80) {
+  const path = new Path2D();
+  const radius = size / 2;
+  const centerX = x + radius;
+  const centerY = y + radius;
+
+  for (let i = 0; i <= steps; i += 1) {
+    const angle = (Math.PI * 2 * i) / steps;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const pointX =
+      centerX + radius * Math.sign(cos) * Math.pow(Math.abs(cos), 2 / exponent);
+    const pointY =
+      centerY + radius * Math.sign(sin) * Math.pow(Math.abs(sin), 2 / exponent);
+
+    if (i === 0) {
+      path.moveTo(pointX, pointY);
+    } else {
+      path.lineTo(pointX, pointY);
+    }
+  }
+
+  path.closePath();
+  return path;
+}
+
+function createCirclePath(x, y, size) {
+  const path = new Path2D();
+  path.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+  path.closePath();
+  return path;
+}
+
+function renderAdaptiveHomeIcon(canvas, image, bgColor, padding, maskType = 'rounded') {
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  const size = Math.min(width, height);
+  const offsetX = (width - size) / 2;
+  const offsetY = (height - size) / 2;
+  const safeZoneRatio = ADAPTIVE_ICON_SAFE_ZONE_DP / ADAPTIVE_ICON_LAYER_DP;
+  const safeZoneSize = size * safeZoneRatio;
+  const contentSize = safeZoneSize * Math.max(0.1, 1 - 2 * padding);
+  const iconX = (width - contentSize) / 2;
+  const iconY = (height - contentSize) / 2;
+  const maskInset = 1;
+  const maskPath =
+    maskType === 'circle'
+      ? createCirclePath(offsetX + maskInset, offsetY + maskInset, size - maskInset * 2)
+      : createSuperellipsePath(offsetX + maskInset, offsetY + maskInset, size - maskInset * 2);
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.save();
+  ctx.clip(maskPath);
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(offsetX, offsetY, size, size);
+  ctx.drawImage(image, iconX, iconY, contentSize, contentSize);
+  ctx.restore();
+}
+
 // ---- Preview Rendering ----
 function renderAllPreviews() {
   if (!svgImage) return;
 
   try {
     const bgColor = getBgColor();
-    const padding = getPadding() / 100;
+    const iconPadding = getIconPadding() / 100;
+    const splashPadding = getSplashPadding() / 100;
+    const splashText = getSplashTextOptions();
     const platforms = getSelectedPlatforms();
+    const useAndroidHomeStyle = platforms.android;
 
     // iOS icon preview (icon.png is always generated as universal store icon)
     const iosCard = previewIos.closest('.preview-card');
-    renderPreview(previewIos, svgImage, bgColor, padding);
+    renderPreview(previewIos, svgImage, bgColor, iconPadding);
     iosCard.style.display = 'flex';
 
     // Android adaptive icon preview (foreground on background)
     const androidCard = previewAndroid.closest('.preview-card');
     if (platforms.android) {
-      renderPreview(previewAndroid, svgImage, bgColor, padding, { circularSafeZone: true });
+      renderPreview(previewAndroid, svgImage, bgColor, iconPadding, { circularSafeZone: true });
       androidCard.style.display = 'flex';
     } else {
       androidCard.style.display = 'none';
@@ -249,7 +466,12 @@ function renderAllPreviews() {
     // Splash screen preview (shared by both platforms)
     const splashCard = previewSplash.closest('.preview-card');
     if (platforms.ios || platforms.android) {
-      renderPreview(previewSplash, svgImage, bgColor, padding, { splashScale: 0.3 });
+      renderSplashPreview(previewSplash, svgImage, bgColor, splashPadding, {
+        splashScale: 0.42,
+        text: splashText.text,
+        textSizePercent: splashText.sizePercent,
+        textColor: splashText.color,
+      });
       splashCard.style.display = 'flex';
     } else {
       splashCard.style.display = 'none';
@@ -258,16 +480,75 @@ function renderAllPreviews() {
     // Dark mode splash screen preview
     if (isDarkModeEnabled() && (platforms.ios || platforms.android)) {
       const darkBgColor = getDarkBgColor();
-      renderPreview(previewSplashDark, svgImage, darkBgColor, padding, { splashScale: 0.3 });
+      renderSplashPreview(previewSplashDark, svgImage, darkBgColor, splashPadding, {
+        splashScale: 0.42,
+        text: splashText.text,
+        textSizePercent: splashText.sizePercent,
+        textColor: splashText.darkColor,
+      });
       previewSplashDarkCard.style.display = 'flex';
     } else {
       previewSplashDarkCard.style.display = 'none';
     }
 
+    // Home screen scene preview
+    const homeSceneCard = previewHomeScene.closest('.preview-card');
+    if (platforms.ios || platforms.android) {
+      previewHomeScene.classList.toggle('scene-android', useAndroidHomeStyle);
+      previewHomeScene.classList.toggle('scene-ios', !useAndroidHomeStyle);
+      previewHomeVariants.classList.toggle('scene-icon-variants-android', useAndroidHomeStyle);
+      previewHomeVariants.classList.toggle('scene-icon-variants-ios', !useAndroidHomeStyle);
+      previewHomeSearch.style.display = useAndroidHomeStyle ? 'flex' : 'none';
+      previewHomeSceneDesc.textContent = useAndroidHomeStyle
+        ? 'Adaptive icon masks on launcher: rounded and circle'
+        : 'Following iPhone home screen style';
+      if (useAndroidHomeStyle) {
+        previewHomeVariantIos.style.display = 'none';
+        previewHomeVariantRounded.style.display = 'flex';
+        previewHomeVariantCircle.style.display = 'flex';
+        renderAdaptiveHomeIcon(previewHomeIconRounded, svgImage, bgColor, iconPadding, 'rounded');
+        renderAdaptiveHomeIcon(previewHomeIconCircle, svgImage, bgColor, iconPadding, 'circle');
+      } else {
+        previewHomeVariantIos.style.display = 'flex';
+        previewHomeVariantRounded.style.display = 'none';
+        previewHomeVariantCircle.style.display = 'none';
+        renderPreview(previewHomeIconIos, svgImage, bgColor, iconPadding);
+      }
+      homeSceneCard.style.display = 'flex';
+    } else {
+      homeSceneCard.style.display = 'none';
+    }
+
+    // Launch scene preview
+    const launchCard = previewLaunch.closest('.preview-card');
+    if (platforms.ios || platforms.android) {
+      renderSplashPreview(previewLaunch, svgImage, bgColor, splashPadding, {
+        splashScale: 0.52,
+        text: splashText.text,
+        textSizePercent: splashText.sizePercent,
+        textColor: splashText.color,
+      });
+      launchCard.style.display = 'flex';
+    } else {
+      launchCard.style.display = 'none';
+    }
+
+    if (isDarkModeEnabled() && (platforms.ios || platforms.android)) {
+      renderSplashPreview(previewLaunchDark, svgImage, getDarkBgColor(), splashPadding, {
+        splashScale: 0.52,
+        text: splashText.text,
+        textSizePercent: splashText.sizePercent,
+        textColor: splashText.darkColor,
+      });
+      previewLaunchDarkCard.style.display = 'flex';
+    } else {
+      previewLaunchDarkCard.style.display = 'none';
+    }
+
     // Favicon preview (web, always shown if any platform selected)
     const faviconCard = previewFavicon.closest('.preview-card');
     if (platforms.ios || platforms.android) {
-      renderPreview(previewFavicon, svgImage, bgColor, padding * 0.6);
+      renderPreview(previewFavicon, svgImage, bgColor, iconPadding * 0.6);
       faviconCard.style.display = 'flex';
     } else {
       faviconCard.style.display = 'none';
@@ -276,7 +557,10 @@ function renderAllPreviews() {
     // Monochrome preview (Android only)
     const monoCard = previewMono.closest('.preview-card');
     if (platforms.android) {
-      renderPreview(previewMono, svgImage, null, padding, { monochrome: true, circularSafeZone: true });
+      renderPreview(previewMono, svgImage, null, iconPadding, {
+        monochrome: true,
+        circularSafeZone: true,
+      });
       monoCard.style.display = 'flex';
     } else {
       monoCard.style.display = 'none';
@@ -399,6 +683,7 @@ async function handleSvgFile(file) {
     return;
   }
   svgText = text;
+  svgDimensions = parseSvgDimensions(text);
 
   try {
     svgImage = await loadSvgAsImage(text);
@@ -427,6 +712,9 @@ function updateConfigSnippet() {
   };
   const platforms = getSelectedPlatforms();
   const snippet = generateConfigSnippet(getBgColor(), darkMode, platforms);
+  configDesc.textContent = getSplashText()
+    ? "Copy and merge this into your Expo project's app.json. Splash text is already baked into the generated splash images:"
+    : "Copy and merge this into your Expo project's app.json:";
   configCode.textContent = snippet;
   configSection.style.display = 'block';
 }
@@ -465,25 +753,35 @@ btnRemove.addEventListener('click', (e) => {
   clearUploadedSvg();
 });
 
-// ---- Event: Color Picker ----
-bgColorPicker.addEventListener('input', () => {
-  bgColorText.value = bgColorPicker.value;
+function bindHexColorInput(colorPicker, colorTextInput, onChange) {
+  colorPicker.addEventListener('input', () => {
+    colorTextInput.value = colorPicker.value;
+    onChange();
+  });
+
+  colorTextInput.addEventListener('input', () => {
+    let val = colorTextInput.value.trim();
+    if (!val.startsWith('#')) val = '#' + val;
+    if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+      colorPicker.value = val;
+      onChange();
+    }
+  });
+
+  colorTextInput.addEventListener('blur', () => {
+    colorTextInput.value = colorPicker.value;
+  });
+}
+
+function handleSplashTextChanged() {
   renderAllPreviews();
   updateConfigSnippet();
-});
+}
 
-bgColorText.addEventListener('input', () => {
-  let val = bgColorText.value.trim();
-  if (!val.startsWith('#')) val = '#' + val;
-  if (/^#[0-9a-fA-F]{6}$/.test(val)) {
-    bgColorPicker.value = val;
-    renderAllPreviews();
-    updateConfigSnippet();
-  }
-});
-
-bgColorText.addEventListener('blur', () => {
-  bgColorText.value = bgColorPicker.value;
+// ---- Event: Color Picker ----
+bindHexColorInput(bgColorPicker, bgColorText, () => {
+  renderAllPreviews();
+  updateConfigSnippet();
 });
 
 // ---- Event: Dark Mode Toggle ----
@@ -493,24 +791,56 @@ darkModeToggle.addEventListener('change', () => {
   updateConfigSnippet();
 });
 
-darkBgColorPicker.addEventListener('input', () => {
-  darkBgColorText.value = darkBgColorPicker.value;
+bindHexColorInput(darkBgColorPicker, darkBgColorText, () => {
   renderAllPreviews();
   updateConfigSnippet();
 });
 
-darkBgColorText.addEventListener('input', () => {
-  let val = darkBgColorText.value.trim();
-  if (!val.startsWith('#')) val = '#' + val;
-  if (/^#[0-9a-fA-F]{6}$/.test(val)) {
-    darkBgColorPicker.value = val;
-    renderAllPreviews();
-    updateConfigSnippet();
+bindHexColorInput(splashTextColorPicker, splashTextColorText, handleSplashTextChanged);
+bindHexColorInput(darkSplashTextColorPicker, darkSplashTextColorText, handleSplashTextChanged);
+
+splashTextInput.addEventListener('beforeinput', (event) => {
+  if (
+    event.inputType.startsWith('delete') ||
+    event.inputType.startsWith('history') ||
+    event.inputType === 'insertCompositionText'
+  ) {
+    return;
+  }
+
+  const insertedText = event.data ?? '';
+  if (!insertedText) return;
+
+  const nextValue = getInputValueWithInsertedText(splashTextInput, insertedText);
+  if (Array.from(nextValue).length > MAX_SPLASH_TEXT_CHARS) {
+    event.preventDefault();
+    showToast(`Splash text supports up to ${MAX_SPLASH_TEXT_CHARS} characters.`, 3000);
   }
 });
 
-darkBgColorText.addEventListener('blur', () => {
-  darkBgColorText.value = darkBgColorPicker.value;
+splashTextInput.addEventListener('paste', (event) => {
+  const pastedText = event.clipboardData?.getData('text') || '';
+  if (!pastedText) return;
+
+  const nextValue = getInputValueWithInsertedText(splashTextInput, pastedText);
+  if (Array.from(nextValue).length <= MAX_SPLASH_TEXT_CHARS) return;
+
+  event.preventDefault();
+
+  const currentValue =
+    splashTextInput.value.slice(0, splashTextInput.selectionStart ?? splashTextInput.value.length) +
+    splashTextInput.value.slice(splashTextInput.selectionEnd ?? splashTextInput.value.length);
+  const remaining = Math.max(0, MAX_SPLASH_TEXT_CHARS - Array.from(currentValue).length);
+  const truncatedPaste = Array.from(pastedText).slice(0, remaining).join('');
+
+  replaceSelectedText(splashTextInput, truncatedPaste);
+  handleSplashTextChanged();
+  showToast(`Splash text supports up to ${MAX_SPLASH_TEXT_CHARS} characters.`, 3000);
+});
+
+splashTextInput.addEventListener('input', () => {
+  enforceSplashTextLimit(splashTextInput.value, true);
+  handleSplashTextChanged();
 });
 
 // ---- Event: Platform Selection ----
@@ -541,6 +871,16 @@ iconPaddingSlider.addEventListener('input', () => {
   renderAllPreviews();
 });
 
+splashPaddingSlider.addEventListener('input', () => {
+  updatePaddingLabel();
+  renderAllPreviews();
+});
+
+splashTextSizeSlider.addEventListener('input', () => {
+  updatePaddingLabel();
+  renderAllPreviews();
+});
+
 // ---- Event: Auto Padding Button ----
 btnAutoPadding.addEventListener('click', () => {
   applyAutoPadding();
@@ -550,7 +890,6 @@ btnAutoPadding.addEventListener('click', () => {
 btnGenerate.addEventListener('click', async () => {
   if (!svgImage) return;
 
-  const originalText = btnGenerate.textContent;
   btnGenerate.classList.add('generating');
   btnGenerate.innerHTML = `
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin">
@@ -565,7 +904,17 @@ btnGenerate.addEventListener('click', async () => {
       bgColor: getDarkBgColor(),
     };
     const platforms = getSelectedPlatforms();
-    const assets = await generateAllAssets(svgImage, getBgColor(), getPadding(), darkMode, platforms);
+    const assets = await generateAllAssets(
+      svgImage,
+      getBgColor(),
+      {
+        iconPaddingPercent: getIconPadding(),
+        splashPaddingPercent: getSplashPadding(),
+      },
+      darkMode,
+      platforms,
+      getSplashTextOptions()
+    );
     const zipBlob = await createZip(assets);
 
     // Build descriptive filename
